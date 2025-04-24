@@ -1,10 +1,10 @@
-<p align="center">
-  <img src="https://github.com/Tanya0139/credit-risk-prediction/blob/main/credit.gif" alt="Credit Risk Prediction">
-</p>
-
 # 💳 Credit Risk Prediction Using Machine Learning
 
 **Dataset:** German Credit Data
+
+<p align="center">
+  <img src="https://github.com/Tanya0139/credit-risk-prediction/blob/main/credit.gif" alt="Credit Risk Prediction">
+</p>
 
 ---
 
