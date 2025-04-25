@@ -1,4 +1,8 @@
-# 💳 Credit Risk Prediction Using Machine Learning
+# 💳 Credit Risk Predictor
+
+A powerful end-to-end ML pipeline to **predict credit risk** from customer financial data. This solution seamlessly integrates **Apache Spark**, **Delta Lake**, **Azure Data Lake**, and **Streamlit**, delivering interactive visual analytics and real-time predictions.
+
+---
 
 **Dataset:** German Credit Data
 
@@ -8,97 +12,87 @@
 
 ---
 
-## 🔍 1. Introduction
+## 🚀 Features
 
-Financial institutions face increasing challenges in assessing the creditworthiness of loan applicants. To minimize defaults and maintain financial stability, it's essential to leverage data-driven approaches to predict credit risk accurately. This project uses the **German Credit dataset** to develop a machine learning model that classifies loan applicants as good or bad credit risk.
-
----
-
-## 🎯 2. Objectives
-
-- Build a predictive model to classify credit risk.
-- Identify key factors influencing creditworthiness.
-- Develop an interactive UI for credit risk prediction using **Streamlit**.
-- Provide actionable insights to improve the credit evaluation process.
+- 🔁 Bronze → Silver → Gold data transformation pipelines
+- 🧠 Random Forest Classifier with SHAP-based feature explainability
+- 📊 Interactive Streamlit dashboard for metrics and prediction
+- ☁️ Native Azure Data Lake Gen2 integration with Delta Lake
+- ⚡ Real-time predictions with custom user inputs
 
 ---
 
-## 📊 3. Methodology
+## 📂 Project Structure
 
-### 🗃️ Data Overview
+```
+.
+├── main.py                    # Streamlit App (Train + Predict + Visualize)
+├── bronzetosilver.ipynb       # Raw to cleaned data transformation
+├── silvertogold.ipynb         # Labeling & final features
+├── mount.ipynb                # Azure ADL mount for Spark
+```
 
-- **Dataset:** 1000 samples from the German Credit dataset  
-- **Target Variable:** `CreditRisk` (Simulated: `1 = Good`, `0 = Bad`)  
-- **Features:** Age, Job, Housing, Credit amount, Duration, Purpose, and account status  
+---
 
-### 🧹 Data Preprocessing
+## 🔧 Setup Instructions
 
-- **Missing Values:** Dropped rows with nulls  
-- **Feature Encoding:** One-hot encoding using `pd.get_dummies()`  
-- **Feature Scaling:** Used `StandardScaler` to normalize numerical features
+```bash
+# Clone the repository
+git clone https://github.com/your-username/credit-risk-predictor.git
+cd credit-risk-predictor
+
+# Install required dependencies
+pip install -r requirements.txt
+
+# Launch the Streamlit app
+streamlit run main.py
+```
+
+---
+
+## 📦 Key Code Snippets (with Descriptions)
+
+### 🔌 Connect to Azure Data Lake via Delta Lake
 
 ```python
+spark = SparkSession.builder \
+    .appName("CreditRiskVSCode") \
+    .config("spark.jars.packages", "io.delta:delta-core_2.12:2.4.0,...") \
+    .config("fs.azure.account.oauth2.client.id", client_id) \
+    .config("fs.azure.account.oauth2.client.secret", client_secret) \
+    .getOrCreate()
+
+df_spark = spark.read.format("delta").load(gold_path)
+df = df_spark.toPandas()
+```
+
+---
+
+### 🧹 Preprocess Data (Encoding + Scaling)
+
+```python
+df = pd.get_dummies(df, drop_first=True)
+scaler = StandardScaler()
+X = df.drop('CreditRisk', axis=1)
+y = df['CreditRisk']
 X_scaled = scaler.fit_transform(X)
 ```
 
-- **Target Creation:** Simulated target based on domain-relevant logic
+---
+
+### 🧠 Train the Model & Evaluate
 
 ```python
-df['CreditRisk'] = np.where((df['Credit amount'] < 5000) & (df['Duration'] < 24), 1, 0)
-```
-
-### 🧠 Model Development
-
-- **Algorithm:** `RandomForestClassifier`
-  - Handles numeric and categorical data
-  - Robust to outliers and overfitting
-  - Provides feature importance scores
-
-- **Training:**
-  - 80-20 split using stratified sampling
-
-```python
-X_train, X_test, y_train, y_test = train_test_split(...)
+model = RandomForestClassifier(random_state=42)
 model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+print(classification_report(y_test, y_pred))
 ```
 
 ---
 
-## 📈 4. Results
-
-### 🧪 Evaluation Metrics
-
-- **Accuracy:** High accuracy  
-- **Classification Report:**
-
-```
-              precision    recall  f1-score   support
-           0       0.95       0.87      0.91       47
-           1       0.90       0.97      0.93       53
-```
-
-- Displayed in **Streamlit**:
-
-```python
-st.dataframe(pd.DataFrame(report).transpose())
-```
-
-### 🪄 Feature Importance
-
-- Top predictors: `Credit amount`, `Duration`, `Checking account_status`, etc.  
-- Visualized using:
-
-```python
-st.bar_chart(feature_importance)
-```
-
----
-
-## 🧠 5. Model Interpretability
-
-### 📊 SHAP Analysis
-
-- Used `shap.TreeExplainer` for interpretation:
+### 📈 Explain Predictions with SHAP
 
 ```python
 explainer = shap.Explainer(model, X_train)
@@ -106,44 +100,50 @@ shap_values = explainer(X_train, check_additivity=False)
 shap.summary_plot(shap_values, features=X.columns)
 ```
 
-- SHAP plots explain how each feature contributes to the prediction.
-
 ---
 
-## 🖥️ 6. Streamlit UI for User Prediction
-
-- Interactive UI with sliders and dropdowns for user input  
-- Real-time prediction display
+### 🌐 Streamlit UI for Real-Time Prediction
 
 ```python
+input_data = []
+for col in X.columns:
+    input_val = st.number_input(col) if "_" not in col else st.selectbox(col, [0, 1])
+    input_data.append(input_val)
+
 if st.button("Predict Credit Risk"):
-    prediction = model.predict(input_array)
+    prediction = model.predict(np.array(input_data).reshape(1, -1))
+    st.success("Prediction: Good Credit Risk" if prediction[0] == 1 else "Bad Credit Risk")
 ```
 
 ---
 
-## ✅ 7. Why This Approach Was Selected
+## 🧠 SHAP Visuals for Explainability
 
-- **Random Forest:** Handles complex patterns & provides feature importance  
-- **SHAP:** Critical for model transparency in financial domains  
-- **Streamlit:** Easy-to-use interface for real-time prediction apps
+![SHAP Summary](https://shap.readthedocs.io/en/latest/_images/overview.png)
 
 ---
 
-## 💡 8. Conclusions & Recommendations
+## 🚧 Future Enhancements
 
-- The model effectively predicts credit risk using relevant attributes  
-- SHAP builds trust through transparency  
-- **Recommendation:** Use this as a preliminary screening tool to assist analysts
+- Add support for multiple classifiers (e.g., XGBoost, LightGBM)
+- Integrate hyperparameter tuning via GridSearchCV or Optuna
+- Deploy as Docker container or using Azure App Services
+- Add authentication for secure user access
+- Add versioned model registry and CI/CD with GitHub Actions
 
 ---
 
-## 📦 9. Deliverables
+## 🛠️ Tech Stack
 
-- ✅ Source code and Streamlit app  
-- ✅ SHAP visualizations and classification reports  
-- ✅ User demo (video) explaining functionality and results  
+| Layer        | Tools Used                              |
+|--------------|------------------------------------------|
+| Language     | Python 3.10+                             |
+| ML           | scikit-learn, SHAP                      |
+| Visualization| matplotlib, seaborn, Streamlit           |
+| Cloud        | Azure Data Lake Gen2 + Delta Lake        |
+| Big Data     | Apache Spark                            |
 
+---
 ---
 
 ## UI
