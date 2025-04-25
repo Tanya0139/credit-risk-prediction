@@ -1,28 +1,50 @@
-# German Credit Risk Prediction - Full Code with Streamlit UI
 
-# Step 1: Import Libraries
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
-
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 import shap
+from delta import configure_spark_with_delta_pip
+from pyspark.sql import SparkSession
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+from datetime import datetime, timedelta
 
 # Step 2: Load Data
-df = pd.read_csv('german_credit_data.csv')  # Replace with the actual path
+client_id = "<client-id>"
+client_secret = "<client-secret>"
+tenant_id = "<tenant-id>"
+storage_account_name = "credrisk"
+container_name = "gold"
 
-# Step 3: Preprocessing
-# Drop irrelevant columns if any
-# df.drop(['Unnamed: 0'], axis=1, inplace=True)
+gold_path = f"abfss://{container_name}@{storage_account_name}.dfs.core.windows.net/"
 
-# Handle missing values
-df = df.dropna()
+# Initialize Spark session with necessary packages
+spark = SparkSession.builder \
+    .appName("CreditRiskVSCode") \
+    .config("spark.jars.packages", ",".join([
+        "io.delta:delta-core_2.12:2.4.0",
+        "org.apache.hadoop:hadoop-azure:3.3.1",
+        "com.azure:azure-storage:8.6.6"
+    ])) \
+    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+    .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+    .config(f"fs.azure.account.auth.type.{storage_account_name}.dfs.core.windows.net", "OAuth") \
+    .config(f"fs.azure.account.oauth.provider.type.{storage_account_name}.dfs.core.windows.net",
+            "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider") \
+    .config(f"fs.azure.account.oauth2.client.id.{storage_account_name}.dfs.core.windows.net", client_id) \
+    .config(f"fs.azure.account.oauth2.client.secret.{storage_account_name}.dfs.core.windows.net", client_secret) \
+    .config(f"fs.azure.account.oauth2.client.endpoint.{storage_account_name}.dfs.core.windows.net",
+            f"https://login.microsoftonline.com/{tenant_id}/oauth2/token") \
+    .getOrCreate()
 
+# Read Delta data
+df_spark = spark.read.format("delta").load(gold_path)
+df = df_spark.toPandas()
 # Simulate CreditRisk for testing (remove once real label is available)
 df['CreditRisk'] = np.where((df['Credit amount'] < 5000) & (df['Duration'] < 24), 1, 0)
 
