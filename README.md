@@ -33,6 +33,31 @@ A powerful end-to-end ML pipeline to **predict credit risk** from customer finan
 ```
 
 ---
+## Architecture
+```mermaid
+---
+config:
+      theme: redux
+---
+
+flowchart TD
+    A(["Start: Raw Data in Azure Data Lake (Bronze Layer)"])
+    A --> B["Transform to Cleaned Data (Silver Layer)"]
+    B --> C["Add Target Labels & Finalize Features (Gold Layer)"]
+    C --> D["Load Gold Data into Spark Session"]
+    D --> E["Convert to Pandas DataFrame"]
+    E --> F["Preprocess: Encoding + Scaling"]
+    F --> G["Split into Train/Test Sets"]
+    G --> H["Train Random Forest Model"]
+    H --> I["Evaluate Model (Classification Report, Accuracy)"]
+    H --> J["Explain Model with SHAP"]
+    I --> K["Visualize Results with Streamlit"]
+    J --> K
+    K --> L["Real-Time Prediction Interface"]
+    L --> M(["End: Credit Risk Prediction"])
+```
+
+---
 
 ## 🔧 Setup Instructions
 
